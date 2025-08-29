@@ -55,7 +55,9 @@ jobs:
       - name: Walidacja URL-i po deployu
         run: |
           set -e
-          curl -sSfI https:/      # ✅ POWIADOMIENIA O SUKCESIE
+          curl -sSfI "https://oferty.supremehouses.pl/raport_ofert_dewelopera.xml" >/dev/null
+          curl -sSfI "https://oferty.supremehouses.pl/raport_ofert_dewelopera.md5" >/dev/null
+          
       - name: Slack success (opcjonalnie)
         if: success() && env.SLACK_WEBHOOK != ''
         run: |
