@@ -46,6 +46,18 @@ jobs:
       - name: Sprawdź, że DaneSH.xlsx istnieje
         run: |
           test -s DaneSH.xlsx || (echo "Brak DaneSH.xlsx - dodaj plik do repo albo ustaw DATA_URL" && exit 1)
+     
+      - name: Netlify API self-test
+        run: |
+          echo "Testuję dostęp do Netlify API…"
+          code_user=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" https://api.netlify.com/api/v1/user)
+          echo "GET /user -> $code_user"
+          code_site=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID")
+          echo "GET /sites/$NETLIFY_SITE_ID -> $code_site"
+          if [ "$code_user" != "200" ] || [ "$code_site" != "200" ]; then
+            echo "❌ Brak autoryzacji do Netlify (sprawdź token i SITE_ID)"
+            exit 1
+          fi
 
       - name: Publikacja na Netlify
         run: |
