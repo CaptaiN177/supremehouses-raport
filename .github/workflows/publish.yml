@@ -1,0 +1,72 @@
+name: Publikacja raportu SupremeHouses
+
+on:
+  schedule:
+    # Cron w UTC. 03:05 UTC = 05:05 w Polsce (czas letni).
+    - cron: '5 3 * * *'
+  workflow_dispatch: {}  # ręczne uruchomienie z UI
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      DATA_URL: ${{ vars.DATA_URL }} # opcjonalnie, jeśli ustawisz
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          pip install -U pip
+          pip install pandas openpyxl
+          npm i -g netlify-cli@17
+
+      - name: Pobierz dane (jeśli ustawiono DATA_URL)
+        if: env.DATA_URL != ''
+        run: |
+          echo "Pobieram Excel z: $DATA_URL"
+          curl -fsSL "$DATA_URL" -o DaneSH.xlsx
+          ls -l DaneSH.xlsx
+
+      - name: Sprawdź, że DaneSH.xlsx istnieje
+        run: |
+          test -s DaneSH.xlsx || (echo "Brak DaneSH.xlsx - dodaj plik do repo albo ustaw DATA_URL" && exit 1)
+
+      - name: Publikacja na Netlify
+        run: |
+          chmod +x ./deploy_netlify.sh
+          ./deploy_netlify.sh DaneSH.xlsx 2>&1 | tee action_deploy.log
+
+      - name: Walidacja URL-i po deployu
+        run: |
+          set -e
+          curl -sSfI https://oferty.supremehouses.pl/raport_ofert_dewelopera.xml   | head -n 5
+          curl -sSfI https://oferty.supremehouses.pl/raport_ofert_dewelopera.md5   | head -n 5
+
+      - name: Upload logów jako artefakt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: action_deploy.log
+
+      - name: Slack alert (tylko przy błędzie)
+        if: failure() && env.SLACK_WEBHOOK != ''
+        run: |
+          payload='{"text":"❌ Publikacja SupremeHouses nie powiodła się (commit: '${{ github.sha }}'). Wejdź w Actions.","username":"GH Actions","icon_emoji":":rotating_light:"}'
+          curl -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK"
