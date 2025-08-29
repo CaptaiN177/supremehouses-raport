@@ -55,20 +55,44 @@ jobs:
       - name: Walidacja URL-i po deployu
         run: |
           set -e
-          curl -sSfI https://oferty.supremehouses.pl/raport_ofert_dewelopera.xml   | head -n 5
-          curl -sSfI https://oferty.supremehouses.pl/raport_ofert_dewelopera.md5   | head -n 5
+          curl -sSfI https:/      # ✅ POWIADOMIENIA O SUKCESIE
+      - name: Slack success (opcjonalnie)
+        if: success() && env.SLACK_WEBHOOK != ''
+        run: |
+          payload='{
+            "text":"✅ Publikacja SupremeHouses zakończona sukcesem.\nXML: https://oferty.supremehouses.pl/raport_ofert_dewelopera.xml\nMD5: https://oferty.supremehouses.pl/raport_ofert_dewelopera.md5\nRun: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "username":"GH Actions",
+            "icon_emoji":":white_check_mark:"
+          }'
+          curl -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK"
 
-      - name: Upload logów jako artefakt
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: E-mail success (opcjonalnie)
+        if: success()
+        uses: dawidd6/action-send-mail@v3
         with:
-          name: logs
-          path: action_deploy.log
+          server_address: ${{ secrets.MAIL_HOST }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "✅ Publikacja SupremeHouses zakończona sukcesem"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_USERNAME }}
+          secure: true
+          body: |
+            Publikacja zakończona sukcesem.
+            XML: https://oferty.supremehouses.pl/raport_ofert_dewelopera.xml
+            MD5: https://oferty.supremehouses.pl/raport_ofert_dewelopera.md5
+            Logi runu: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
+      # ❌ POWIADOMIENIA O BŁĘDZIE (zostaw jeśli już masz)
       - name: Slack alert (tylko przy błędzie)
         if: failure() && env.SLACK_WEBHOOK != ''
         run: |
-          payload='{"text":"❌ Publikacja SupremeHouses nie powiodła się (commit: '${{ github.sha }}'). Wejdź w Actions.","username":"GH Actions","icon_emoji":":rotating_light:"}'
+          payload='{
+            "text":"❌ Publikacja SupremeHouses nie powiodła się (commit: '${{ github.sha }}'). Wejdź w Actions: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "username":"GH Actions",
+            "icon_emoji":":rotating_light:"
+          }'
           curl -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK"
 
       - name: E-mail alert (tylko przy błędzie)
@@ -87,5 +111,17 @@ jobs:
             Workflow nie powiódł się.
             Repo: ${{ github.repository }}
             Commit: ${{ github.sha }}
-            Sprawdź logi w Actions:
-            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Logi runu: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Upload logów jako artefakt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: action_deploy.log
+
+      - name: Slack alert (tylko przy błędzie)
+        if: failure() && env.SLACK_WEBHOOK != ''
+        run: |
+          payload='{"text":"❌ Publikacja SupremeHouses nie powiodła się (commit: '${{ github.sha }}'). Wejdź w Actions.","username":"GH Actions","icon_emoji":":rotating_light:"}'
+          curl -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK"
