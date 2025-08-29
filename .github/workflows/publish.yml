@@ -70,3 +70,22 @@ jobs:
         run: |
           payload='{"text":"❌ Publikacja SupremeHouses nie powiodła się (commit: '${{ github.sha }}'). Wejdź w Actions.","username":"GH Actions","icon_emoji":":rotating_light:"}'
           curl -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK"
+
+      - name: E-mail alert (tylko przy błędzie)
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.MAIL_HOST }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "❌ Błąd publikacji SupremeHouses"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_USERNAME }}
+          secure: true
+          body: |
+            Workflow nie powiódł się.
+            Repo: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Sprawdź logi w Actions:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
