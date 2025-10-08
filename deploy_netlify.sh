@@ -96,7 +96,12 @@ if errors and len(errors)==len(df.index):
 elif errors:
     sys.stderr.write("⚠️  Ostrzeżenia (pominięte wiersze):\n- " + "\n- ".join(errors) + "\n")
 
-xml = ["<?xml version='1.0' encoding='UTF-8'?>", "<oferty>"]
+xml = [
+    "<?xml version='1.0' encoding='UTF-8'?>",
+    '<oferty xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+    'xsi:noNamespaceSchemaLocation="https://dane.gov.pl/schemas/oferty_deweloper.xsd">'
+]
+
 for r in rows:
     xml.append("  <lokal>")
     xml.append(f"    <id>{r['id']}</id>")
