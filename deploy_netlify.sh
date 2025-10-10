@@ -98,8 +98,7 @@ elif errors:
 
 xml = [
     "<?xml version='1.0' encoding='UTF-8'?>",
-    '<oferty xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-    'xsi:noNamespaceSchemaLocation="https://dane.gov.pl/schemas/oferty_deweloper.xsd">'
+    "<oferty xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:noNamespaceSchemaLocation='https://dane.gov.pl/schemas/raport_ofert_dewelopera.xsd'>"
 ]
 
 for r in rows:
